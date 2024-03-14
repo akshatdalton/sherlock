@@ -24,7 +24,7 @@ def _setup_integrations() -> None:
         available_libraries_integration_set
     ):
         integration = AVAILABLE_INTEGRATIONS[found_library]
-        integration()
+        integration().add_patch()
 
 
 def sleuth() -> None:

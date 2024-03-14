@@ -28,4 +28,7 @@ class RequestsIntegration(AbstractIntegration):
                 response.headers.update(correlation_id_header)
             return response
 
-        Session.send = new_send
+        self.new_send = new_send
+
+    def add_patch(self) -> None:
+        Session.send = self.new_send

@@ -45,4 +45,7 @@ class FastAPIIntegration(AbstractIntegration):
 
             return new_app
 
-        fastapi.routing.get_request_handler = new_get_request_handler
+        self.new_send = new_get_request_handler
+
+    def add_patch(self) -> None:
+        fastapi.routing.get_request_handler = self.new_send

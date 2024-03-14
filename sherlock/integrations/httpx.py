@@ -28,4 +28,7 @@ class HttpxIntegration(AbstractIntegration):
                 response.headers.update(correlation_id_header)
             return response
 
-        Client.send = new_send
+        self.new_send = new_send
+
+    def add_patch(self) -> None:
+        Client.send = self.new_send
