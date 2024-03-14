@@ -21,5 +21,9 @@ def get_correlation_id_header(generate_new: bool = False) -> Dict[str, str]:
     return {CORRELATION_ID_NAME: correlation_id.get()}
 
 
+def get_correlation_id() -> str:
+    return correlation_id.get()
+
+
 def set_correlation_id(value: str) -> None:
     correlation_id.set(value)
