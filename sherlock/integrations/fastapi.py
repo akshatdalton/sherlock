@@ -10,6 +10,8 @@ except ImportError:
 
 
 class FastAPIIntegration(AbstractIntegration):
+    integration_name: str = "fastapi"
+
     def __init__(self) -> None:
         old_get_request_handler = fastapi.routing.get_request_handler
 
@@ -44,7 +46,3 @@ class FastAPIIntegration(AbstractIntegration):
             return new_app
 
         fastapi.routing.get_request_handler = new_get_request_handler
-
-    @classmethod
-    def integration_name(cls) -> str:
-        return "fastapi"

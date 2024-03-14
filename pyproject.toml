@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "sherlock"
 version = "0.1.0"
-description = "Your Sherlock to observe and add the missing correlation ID in the request headers."
-authors = ["Akshat <akshat@markovml.com>"]
+description = "Your Sherlock to observe and add the missing correlation ID in the request & response headers."
+authors = ["Akshat <akshat25iiit@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]

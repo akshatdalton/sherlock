@@ -7,7 +7,7 @@ from sherlock import sleuth
 from sherlock.constants import CORRELATION_ID_NAME
 
 
-class TestCase(unittest.TestCase):
+class TestFastAPIIntegration(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         sleuth()

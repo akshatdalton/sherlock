@@ -7,16 +7,16 @@ from sherlock import sleuth
 from sherlock.constants import CORRELATION_ID_NAME
 
 
-class TestCase(unittest.TestCase):
+class TestRequestsIntegration(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         sleuth()
 
     @responses.activate
     def test_requests_integration(self):
-        responses.get("https://markovml.com")
+        responses.get("https://google.com")
 
-        response = requests.get("https://markovml.com")
+        response = requests.get("https://google.com")
         request = responses.calls[0].request
 
         self.assertIn(CORRELATION_ID_NAME, request.headers)

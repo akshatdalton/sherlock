@@ -1,4 +1,5 @@
 from sherlock.integrations.fastapi import FastAPIIntegration
+from sherlock.integrations.httpx import HttpxIntegration
 from sherlock.integrations.requests import RequestsIntegration
 
 
@@ -6,6 +7,7 @@ def _setup_integrations() -> None:
     # TODO: Add logic to detect installed libraries and accordingly set up the corresponding integrations.
     RequestsIntegration()
     FastAPIIntegration()
+    HttpxIntegration()
 
 
 def sleuth() -> None:

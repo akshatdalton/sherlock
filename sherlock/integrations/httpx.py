@@ -3,29 +3,29 @@ from sherlock.instrumentation import get_correlation_id_header, set_correlation_
 from sherlock.integrations.integration import AbstractIntegration
 
 try:
-    from requests import Session
+    from httpx import Client, Request, Response
 except ImportError:
     pass
 
 
-class RequestsIntegration(AbstractIntegration):
-    integration_name: str = "requests"
+class HttpxIntegration(AbstractIntegration):
+    integration_name: str = "httpx"
 
     def __init__(self) -> None:
-        old_send = Session.send
+        old_send = Client.send
 
-        def new_send(_self, request, **kwargs):
+        def new_send(_self, request: Request, **kwargs) -> Response:
             old_correlation_id = request.headers.get(CORRELATION_ID_NAME, None)
             if old_correlation_id is not None:
                 set_correlation_id(old_correlation_id)
                 correlation_id_header = get_correlation_id_header()
             else:
                 correlation_id_header = get_correlation_id_header(generate_new=True)
-                request.prepare_headers(correlation_id_header)
+                request.headers.update(correlation_id_header)
 
-            response = old_send(_self, request, **kwargs)
+            response: Response = old_send(_self, request, **kwargs)
             if CORRELATION_ID_NAME not in response.headers:
                 response.headers.update(correlation_id_header)
             return response
 
-        Session.send = new_send
+        Client.send = new_send
