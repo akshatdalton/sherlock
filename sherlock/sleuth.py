@@ -1,6 +1,7 @@
 from importlib import metadata as importlib_metadata
-from typing import Dict, List
+from typing import Callable, Dict, List, Optional
 
+from sherlock.instrumentation import set_correlation_id_generator
 from sherlock.integrations.fastapi import FastAPIIntegration
 from sherlock.integrations.httpx import HttpxIntegration
 from sherlock.integrations.requests import RequestsIntegration
@@ -53,12 +54,16 @@ def _setup_integrations() -> None:
         integration_instance.add_patch()
 
 
-def sleuth() -> None:
+def sleuth(correlation_id_generator_func: Optional[Callable[[], str]] = None) -> None:
     """
     This method sets up the integrations to propagate `X-Correlation-ID`
     across all the http requests.
 
+    :param correlation_id_generator_func: Callable function to generate unique correlation ID.
+            If passed `None`, hex value of uuid4 will be used as a generator.
+    :type correlation_id_generator_func: Optional[Callable[[], str]]
     :return: None value
     :rtype: None
     """
+    set_correlation_id_generator(correlation_id_generator_func)
     _setup_integrations()
