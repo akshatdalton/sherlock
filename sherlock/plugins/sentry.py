@@ -1,4 +1,4 @@
-from sherlock.constants import CORRELATION_ID_NAME
+from sherlock.constants import CORRELATION_ID_NAME, PluginTypes
 from sherlock.instrumentation import get_correlation_id
 from sherlock.plugins.base_plugin import AbstractPlugin
 
@@ -9,7 +9,7 @@ except ImportError:
 
 
 class SentryPlugin(AbstractPlugin):
-    plugin_name: str = "sentry-sdk"
+    plugin_name: PluginTypes = PluginTypes.SENTRY
 
     @staticmethod
     def add_correlation_id() -> None:

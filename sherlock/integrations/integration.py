@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+from sherlock.constants import IntegrationTypes
+
 
 class AbstractIntegration(ABC):
     """
@@ -12,13 +14,22 @@ class AbstractIntegration(ABC):
 
     @abstractmethod
     def __init__(self) -> None:
+        """
+        Define new patch method and assign it to `new_send` variable.
+        """
         self.new_send = None
 
     @abstractmethod
     def add_patch(self) -> None:
+        """
+        Call this method to apply the patch stored in `new_send` variable.
+        """
         pass
 
     @property
     @abstractmethod
-    def integration_name(self) -> str:
+    def integration_type(self) -> IntegrationTypes:
+        """
+        Returns integration types.
+        """
         pass

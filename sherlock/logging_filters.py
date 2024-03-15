@@ -9,5 +9,7 @@ class CorrelationIDFilter(Filter):
     """
 
     def filter(self, record: LogRecord) -> bool:
+        # TODO: If `get_correlation_id` returns `None`
+        #  then generate unique value from `generator`.
         record.correlation_id = get_correlation_id()
         return True

@@ -1,4 +1,4 @@
-from sherlock.constants import CORRELATION_ID_NAME
+from sherlock.constants import CORRELATION_ID_NAME, IntegrationTypes
 from sherlock.instrumentation import get_correlation_id_header, set_correlation_id
 from sherlock.integrations.integration import AbstractIntegration
 
@@ -9,7 +9,7 @@ except ImportError:
 
 
 class HttpxIntegration(AbstractIntegration):
-    integration_name: str = "httpx"
+    integration_type: IntegrationTypes = IntegrationTypes.HTTPX
 
     def __init__(self) -> None:
         old_send = Client.send
@@ -18,14 +18,12 @@ class HttpxIntegration(AbstractIntegration):
             old_correlation_id = request.headers.get(CORRELATION_ID_NAME, None)
             if old_correlation_id is not None:
                 set_correlation_id(old_correlation_id)
-                correlation_id_header = get_correlation_id_header()
-            else:
-                correlation_id_header = get_correlation_id_header(generate_new=True)
-                request.headers.update(correlation_id_header)
+
+            correlation_id_header = get_correlation_id_header()
+            request.headers.update(correlation_id_header)
 
             response: Response = old_send(_self, request, **kwargs)
-            if CORRELATION_ID_NAME not in response.headers:
-                response.headers.update(correlation_id_header)
+            response.headers.update(correlation_id_header)
             return response
 
         self.new_send = new_send
