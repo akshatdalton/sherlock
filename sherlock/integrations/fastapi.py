@@ -1,39 +1,54 @@
+from typing import Any, Dict, MutableMapping, Tuple
+
+import wrapt
+
 from sherlock.constants import CORRELATION_ID_NAME, IntegrationTypes
 from sherlock.instrumentation import get_correlation_id_header, set_correlation_id
 from sherlock.integrations.integration import AbstractIntegration
-
-try:
-    import fastapi
-except ImportError:
-    pass
 
 
 class FastAPIIntegration(AbstractIntegration):
     integration_type: IntegrationTypes = IntegrationTypes.FASTAPI
 
-    def __init__(self) -> None:
-        old_get_request_handler = fastapi.routing.get_request_handler
+    def __init__(self):
+        module_path, func_name = "fastapi", "routing.get_request_handler"
+        super().__init__(module_path=module_path, func_name=func_name)
 
-        def new_get_request_handler(*args, **kwargs):
-            old_app = old_get_request_handler(*args, **kwargs)
+    def extract_request_headers(self, *args, **kwargs) -> MutableMapping:
+        request = args[0]
+        headers = dict(request.scope["headers"])
+        return headers
 
-            async def new_app(*args, **kwargs):
-                request = args[0]
-                headers = dict(request.scope["headers"])
-                old_correlation_id = headers.get(CORRELATION_ID_NAME)
-                if old_correlation_id is not None:
-                    set_correlation_id(old_correlation_id)
+    def update_args_and_kwargs_with_request_headers(
+        self, request_headers: MutableMapping, *args, **kwargs
+    ) -> Tuple[Tuple, Dict]:
+        request = args[0]
+        request.scope["headers"] = [(k, v) for k, v in request_headers.items()]
+        new_args = (request,) + args[1:]
+        return new_args, kwargs
 
-                correlation_id_header = get_correlation_id_header()
-                headers.update(correlation_id_header)
-                request.scope["headers"] = [(k, v) for k, v in headers.items()]
+    def extract_response_headers(self, response: Any) -> MutableMapping:
+        pass
 
-                # FastAPI auto-sets the correlation id header in response from request.
-                return await old_app(*args, **kwargs)
+    def update_response_with_response_headers(
+        self, response_headers: MutableMapping, response: Any
+    ) -> Any:
+        pass
 
-            return new_app
+    def _patched_func(self, wrapped, instance, args, kwargs) -> Any:
+        app = wrapped(*args, **kwargs)
+        new_app = self._app_patcher(app)
+        return new_app
 
-        self.new_send = new_get_request_handler
+    @wrapt.decorator
+    async def _app_patcher(self, wrapped, instance, args, kwargs):
+        request_headers = self.extract_request_headers(*args, **kwargs)
+        if old_correlation_id := request_headers.get(CORRELATION_ID_NAME, None):
+            set_correlation_id(old_correlation_id)
 
-    def add_patch(self) -> None:
-        fastapi.routing.get_request_handler = self.new_send
+        correlation_id_header = get_correlation_id_header()
+        request_headers.update(correlation_id_header)
+        new_args, new_kwargs = self.update_args_and_kwargs_with_request_headers(
+            request_headers, *args, **kwargs
+        )
+        return await wrapped(*new_args, **new_kwargs)

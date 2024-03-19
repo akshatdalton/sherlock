@@ -1,32 +1,33 @@
-from sherlock.constants import CORRELATION_ID_NAME, IntegrationTypes
-from sherlock.instrumentation import get_correlation_id_header, set_correlation_id
-from sherlock.integrations.integration import AbstractIntegration
+from typing import Any, Dict, MutableMapping, Tuple
 
-try:
-    from requests import PreparedRequest, Session
-except ImportError:
-    pass
+from sherlock.constants import IntegrationTypes
+from sherlock.integrations.integration import AbstractIntegration
 
 
 class RequestsIntegration(AbstractIntegration):
     integration_type: IntegrationTypes = IntegrationTypes.REQUESTS
 
-    def __init__(self) -> None:
-        old_send = Session.send
+    def __init__(self):
+        module_path, func_name = "requests", "Session.send"
+        super().__init__(module_path=module_path, func_name=func_name)
 
-        def new_send(_self, request: PreparedRequest, **kwargs):
-            old_correlation_id = request.headers.get(CORRELATION_ID_NAME, None)
-            if old_correlation_id is not None:
-                set_correlation_id(old_correlation_id)
+    def extract_request_headers(self, *args, **kwargs) -> MutableMapping:
+        request = args[0]
+        return request.headers
 
-            correlation_id_header = get_correlation_id_header()
-            request.prepare_headers(correlation_id_header)
+    def update_args_and_kwargs_with_request_headers(
+        self, request_headers: MutableMapping, *args, **kwargs
+    ) -> Tuple[Tuple, Dict]:
+        request = args[0]
+        request.headers.update(request_headers)
+        new_args = (request,) + args[1:]
+        return new_args, kwargs
 
-            response = old_send(_self, request, **kwargs)
-            response.headers.update(correlation_id_header)
-            return response
+    def extract_response_headers(self, response: Any) -> MutableMapping:
+        return response.headers
 
-        self.new_send = new_send
-
-    def add_patch(self) -> None:
-        Session.send = self.new_send
+    def update_response_with_response_headers(
+        self, response_headers: MutableMapping, response: Any
+    ) -> Any:
+        response.headers.update(response_headers)
+        return response

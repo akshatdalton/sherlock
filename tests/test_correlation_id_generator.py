@@ -13,9 +13,11 @@ def custom_correlation_id_generator():
 
 
 class TestCorrelationIDGeneratorIntegration(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
+    def setUp(self):
         sleuth(correlation_id_generator_func=custom_correlation_id_generator)
+
+    def tearDown(self):
+        sleuth(correlation_id_generator_func=lambda: uuid4().hex)
 
     @responses.activate
     def test_custom_correlation_id_generator(self):

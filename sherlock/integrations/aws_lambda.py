@@ -4,30 +4,31 @@ from sherlock.constants import IntegrationTypes
 from sherlock.integrations.integration import AbstractIntegration
 
 
-class HttpxIntegration(AbstractIntegration):
-    integration_type: IntegrationTypes = IntegrationTypes.HTTPX
+class AWSLambdaIntegration(AbstractIntegration):
+    integration_type: IntegrationTypes = IntegrationTypes.AWS_LAMBDA
 
-    def __init__(self):
-        module_path, func_name = "httpx", "Client.send"
+    def __init__(self, module_path: str, func_name: str) -> None:
         super().__init__(module_path=module_path, func_name=func_name)
 
     def extract_request_headers(self, *args, **kwargs) -> MutableMapping:
-        request = args[0]
-        return request.headers
+        event = args[0]
+        request_header = event.get("headers", {})
+        return request_header
 
     def update_args_and_kwargs_with_request_headers(
         self, request_headers: MutableMapping, *args, **kwargs
     ) -> Tuple[Tuple, Dict]:
-        request = args[0]
-        request.headers.update(request_headers)
-        new_args = (request,) + args[1:]
+        event = args[0]
+        event["headers"] = request_headers
+        new_args = (event,) + args[1:]
         return new_args, kwargs
 
     def extract_response_headers(self, response: Any) -> MutableMapping:
-        return response.headers
+        response_headers = response.get("headers", {})
+        return response_headers
 
     def update_response_with_response_headers(
         self, response_headers: MutableMapping, response: Any
     ) -> Any:
-        response.headers.update(response_headers)
+        response["headers"] = response_headers
         return response

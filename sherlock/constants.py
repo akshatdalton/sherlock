@@ -9,6 +9,7 @@ class IntegrationTypes(str, Enum):
     HTTPX: Final = "httpx"
     REQUESTS: Final = "requests"
     URLLIB3: Final = "urllib3"
+    AWS_LAMBDA: Final = "aws_lambda"
 
 
 class PluginTypes(str, Enum):
