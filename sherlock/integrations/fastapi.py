@@ -6,6 +6,11 @@ from sherlock.constants import CORRELATION_ID_NAME, IntegrationTypes
 from sherlock.instrumentation import get_correlation_id_header, set_correlation_id
 from sherlock.integrations.integration import AbstractIntegration
 
+try:
+    from starlette.datastructures import MutableHeaders
+except ImportError:
+    pass
+
 
 class FastAPIIntegration(AbstractIntegration):
     integration_type: IntegrationTypes = IntegrationTypes.FASTAPI
@@ -14,16 +19,16 @@ class FastAPIIntegration(AbstractIntegration):
         module_path, func_name = "fastapi", "routing.get_request_handler"
         super().__init__(module_path=module_path, func_name=func_name)
 
-    def extract_request_headers(self, *args, **kwargs) -> MutableMapping:
+    def extract_request_headers(self, *args, **kwargs) -> MutableHeaders:
         request = args[0]
-        headers = dict(request.scope["headers"])
-        return headers
+        headers = request.headers
+        return headers.mutablecopy()
 
     def update_args_and_kwargs_with_request_headers(
-        self, request_headers: MutableMapping, *args, **kwargs
+        self, request_headers: "MutableHeaders", *args, **kwargs
     ) -> Tuple[Tuple, Dict]:
         request = args[0]
-        request.scope["headers"] = [(k, v) for k, v in request_headers.items()]
+        request.scope["headers"] = request_headers.raw
         new_args = (request,) + args[1:]
         return new_args, kwargs
 
@@ -43,7 +48,7 @@ class FastAPIIntegration(AbstractIntegration):
     @wrapt.decorator
     async def _app_patcher(self, wrapped, instance, args, kwargs):
         request_headers = self.extract_request_headers(*args, **kwargs)
-        if old_correlation_id := request_headers.get(CORRELATION_ID_NAME.lower(), None):
+        if old_correlation_id := request_headers.get(CORRELATION_ID_NAME, None):
             set_correlation_id(old_correlation_id)
 
         correlation_id_header = get_correlation_id_header()

@@ -23,6 +23,6 @@ class TestFastAPIIntegration(unittest.TestCase):
 
     def test_fastapi_integration(self):
         response = self.client.get("/")
-        self.assertIn(CORRELATION_ID_NAME.lower(), response.headers.keys())
+        self.assertIsNotNone(response.headers.get(CORRELATION_ID_NAME, None))
         assert response.status_code == 200
         assert response.json() == {"msg": "Hello World"}
