@@ -68,6 +68,10 @@ class AbstractIntegration(ABC):
         request_headers = self.extract_request_headers(*args, **kwargs)
         if old_correlation_id := request_headers.get(CORRELATION_ID_NAME, None):
             set_correlation_id(old_correlation_id)
+        elif old_correlation_id := request_headers.get(
+            CORRELATION_ID_NAME.lower(), None
+        ):
+            set_correlation_id(old_correlation_id)
 
         correlation_id_header = get_correlation_id_header()
         request_headers.update(correlation_id_header)
