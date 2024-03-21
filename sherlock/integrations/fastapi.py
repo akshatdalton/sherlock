@@ -19,7 +19,7 @@ class FastAPIIntegration(AbstractIntegration):
         module_path, func_name = "fastapi", "routing.get_request_handler"
         super().__init__(module_path=module_path, func_name=func_name)
 
-    def extract_request_headers(self, *args, **kwargs) -> MutableHeaders:
+    def extract_request_headers(self, *args, **kwargs) -> "MutableHeaders":
         request = args[0]
         headers = request.headers
         return headers.mutablecopy()
