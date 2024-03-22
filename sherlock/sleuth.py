@@ -5,13 +5,11 @@ from sherlock.instrumentation import set_correlation_id_generator
 from sherlock.integrations.aws_lambda import AWSLambdaIntegration
 from sherlock.integrations.fastapi import FastAPIIntegration
 from sherlock.integrations.httpx import HttpxIntegration
-from sherlock.integrations.requests import RequestsIntegration
 from sherlock.integrations.urllib3 import Urllib3Integration
 from sherlock.plugins.base_plugin import AbstractPlugin
 from sherlock.plugins.sentry import SentryPlugin
 
 _AVAILABLE_INTEGRATIONS: Dict = {
-    RequestsIntegration.integration_type: RequestsIntegration,
     FastAPIIntegration.integration_type: FastAPIIntegration,
     HttpxIntegration.integration_type: HttpxIntegration,
     Urllib3Integration.integration_type: Urllib3Integration,

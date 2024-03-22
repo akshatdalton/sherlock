@@ -13,6 +13,7 @@ class Urllib3Integration(AbstractIntegration):
         super().__init__(module_path=module_path, func_name=func_name)
 
     def extract_request_headers(self, *args, **kwargs) -> MutableMapping:
+        self._header_in_kwargs = True
         request_header = kwargs.get("headers", None)
         if request_header is None:
             if len(args) >= 4:
