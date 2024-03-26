@@ -85,6 +85,6 @@ class AbstractIntegration(ABC):
             response_headers.update(correlation_id_header)
 
         new_response = self.update_response_with_response_headers(
-            request_headers, response
+            response_headers, response
         )
         return new_response
