@@ -1,4 +1,4 @@
-from typing import Any, Dict, MutableMapping, Tuple
+from typing import Any, Dict, Tuple
 
 import wrapt
 
@@ -32,13 +32,15 @@ class FastAPIIntegration(AbstractIntegration):
         new_args = (request,) + args[1:]
         return new_args, kwargs
 
-    def extract_response_headers(self, response: Any) -> MutableMapping:
-        pass
+    def extract_response_headers(self, response: Any) -> "MutableHeaders":
+        return response.headers
 
     def update_response_with_response_headers(
-        self, response_headers: MutableMapping, response: Any
+        self, response_headers: "MutableHeaders", response: Any
     ) -> Any:
-        pass
+        response.raw_headers = response_headers.raw
+        response._headers = response_headers
+        return response
 
     def _patched_func(self, wrapped, instance, args, kwargs) -> Any:
         app = wrapped(*args, **kwargs)
@@ -56,4 +58,13 @@ class FastAPIIntegration(AbstractIntegration):
         new_args, new_kwargs = self.update_args_and_kwargs_with_request_headers(
             request_headers, *args, **kwargs
         )
-        return await wrapped(*new_args, **new_kwargs)
+
+        response = await wrapped(*new_args, **new_kwargs)
+        response_headers = self.extract_response_headers(response)
+        if CORRELATION_ID_NAME not in response_headers:
+            response_headers.update(correlation_id_header)
+
+        new_response = self.update_response_with_response_headers(
+            response_headers, response
+        )
+        return new_response
