@@ -1,3 +1,4 @@
+import inspect
 from typing import Any, Dict, MutableMapping, Tuple
 
 from sherlock.constants import IntegrationTypes
@@ -9,28 +10,15 @@ class Urllib3Integration(AbstractIntegration):
 
     def __init__(self):
         module_path, func_name = "urllib3", "HTTPConnectionPool.urlopen"
-        self._header_in_kwargs = True
         super().__init__(module_path=module_path, func_name=func_name)
 
     def extract_request_headers(self, *args, **kwargs) -> MutableMapping:
-        self._header_in_kwargs = True
-        request_header = kwargs.get("headers", None)
-        if request_header is None:
-            if len(args) >= 4:
-                request_header = args[4]
-                self._header_in_kwargs = False
-            else:
-                request_header = {}
-        return request_header
+        return kwargs.get("headers", {})
 
     def update_args_and_kwargs_with_request_headers(
         self, request_headers: MutableMapping, *args, **kwargs
     ) -> Tuple[Tuple, Dict]:
-        if self._header_in_kwargs:
-            kwargs["headers"].update(request_headers)
-        else:
-            updated_args = args[:4] + (request_headers,) + args[5:]
-            args = updated_args
+        kwargs["headers"] = request_headers
         return args, kwargs
 
     def extract_response_headers(self, response: Any) -> MutableMapping:
@@ -41,3 +29,15 @@ class Urllib3Integration(AbstractIntegration):
     ) -> Any:
         response.headers.update(response_headers)
         return response
+
+    def _patched_func(self, wrapped, instance, args, kwargs) -> Any:
+        args_converted_to_kwargs = self._convert_args_to_kwargs(args, wrapped)
+        kwargs.update(args_converted_to_kwargs)
+        args = ()
+        return super()._patched_func(wrapped, instance, args, kwargs)
+
+    @staticmethod
+    def _convert_args_to_kwargs(args, func):
+        func_signature = inspect.signature(func)
+        param_names = [param.name for param in func_signature.parameters.values()]
+        return {param_names[i]: arg for i, arg in enumerate(args)}
