@@ -7,7 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.8"
-wrapt = "1.16.0"
+wrapt = "1.14.0"
 
 [tool.poetry.group.dev.dependencies]
 fastapi = ">=0.88.0,<0.89.0"
