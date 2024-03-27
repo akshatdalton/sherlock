@@ -1,3 +1,4 @@
+import inspect
 from abc import ABC, abstractmethod
 from typing import Any, Dict, MutableMapping, Tuple
 
@@ -65,6 +66,10 @@ class AbstractIntegration(ABC):
         )
 
     def _patched_func(self, wrapped, instance, args, kwargs) -> Any:
+        # First convert all args to kwargs
+        potential_kwargs_from_args = self._convert_args_to_kwargs(args, kwargs, wrapped)
+        kwargs.update(potential_kwargs_from_args)
+        args = ()
         request_headers = self.extract_request_headers(*args, **kwargs)
         if old_correlation_id := request_headers.get(CORRELATION_ID_NAME, None):
             set_correlation_id(old_correlation_id)
@@ -88,3 +93,20 @@ class AbstractIntegration(ABC):
             response_headers, response
         )
         return new_response
+
+    @staticmethod
+    def _convert_args_to_kwargs(args, kwargs, func):
+        wrapped_signature = inspect.signature(func).parameters
+        potential_kwargs_from_args = {
+            k: wrapped_signature.get(k).default
+            for k in wrapped_signature.keys()
+            if wrapped_signature.get(k).default != inspect.Parameter.empty
+        }
+
+        for arg_key, arg_value in zip(wrapped_signature, args):
+            potential_kwargs_from_args[arg_key] = arg_value
+
+        for arg_key, arg_value in kwargs.items():
+            potential_kwargs_from_args[arg_key] = arg_value
+
+        return potential_kwargs_from_args

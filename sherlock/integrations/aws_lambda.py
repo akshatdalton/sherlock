@@ -11,17 +11,17 @@ class AWSLambdaIntegration(AbstractIntegration):
         super().__init__(module_path=module_path, func_name=func_name)
 
     def extract_request_headers(self, *args, **kwargs) -> MutableMapping:
-        event = args[0]
+        event = kwargs["event"]
         request_header = event.get("headers", {})
         return request_header
 
     def update_args_and_kwargs_with_request_headers(
         self, request_headers: MutableMapping, *args, **kwargs
     ) -> Tuple[Tuple, Dict]:
-        event = args[0]
+        event = kwargs["event"]
         event["headers"] = request_headers
-        new_args = (event,) + args[1:]
-        return new_args, kwargs
+        kwargs["event"] = event
+        return args, kwargs
 
     def extract_response_headers(self, response: Any) -> MutableMapping:
         response_headers = response.get("headers", {})

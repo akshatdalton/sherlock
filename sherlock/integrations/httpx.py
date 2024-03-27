@@ -12,16 +12,16 @@ class HttpxIntegration(AbstractIntegration):
         super().__init__(module_path=module_path, func_name=func_name)
 
     def extract_request_headers(self, *args, **kwargs) -> MutableMapping:
-        request = args[0]
+        request = kwargs["request"]
         return request.headers
 
     def update_args_and_kwargs_with_request_headers(
         self, request_headers: MutableMapping, *args, **kwargs
     ) -> Tuple[Tuple, Dict]:
-        request = args[0]
+        request = kwargs["request"]
         request.headers.update(request_headers)
-        new_args = (request,) + args[1:]
-        return new_args, kwargs
+        kwargs["request"] = request
+        return args, kwargs
 
     def extract_response_headers(self, response: Any) -> MutableMapping:
         return response.headers

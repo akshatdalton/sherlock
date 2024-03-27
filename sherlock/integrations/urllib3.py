@@ -1,4 +1,3 @@
-import inspect
 from typing import Any, Dict, MutableMapping, Tuple
 
 from sherlock.constants import IntegrationTypes
@@ -29,15 +28,3 @@ class Urllib3Integration(AbstractIntegration):
     ) -> Any:
         response.headers.update(response_headers)
         return response
-
-    def _patched_func(self, wrapped, instance, args, kwargs) -> Any:
-        args_converted_to_kwargs = self._convert_args_to_kwargs(args, wrapped)
-        kwargs.update(args_converted_to_kwargs)
-        args = ()
-        return super()._patched_func(wrapped, instance, args, kwargs)
-
-    @staticmethod
-    def _convert_args_to_kwargs(args, func):
-        func_signature = inspect.signature(func)
-        param_names = [param.name for param in func_signature.parameters.values()]
-        return {param_names[i]: arg for i, arg in enumerate(args)}
