@@ -5,6 +5,7 @@ import wrapt
 from sherlock.constants import CORRELATION_ID_NAME, IntegrationTypes
 from sherlock.instrumentation import get_correlation_id_header, set_correlation_id
 from sherlock.integrations.integration import AbstractIntegration
+from sherlock.utils import logger
 
 try:
     from starlette.datastructures import MutableHeaders
@@ -49,22 +50,39 @@ class FastAPIIntegration(AbstractIntegration):
 
     @wrapt.decorator
     async def _app_patcher(self, wrapped, instance, args, kwargs):
-        request_headers = self.extract_request_headers(*args, **kwargs)
-        if old_correlation_id := request_headers.get(CORRELATION_ID_NAME, None):
-            set_correlation_id(old_correlation_id)
+        try:
+            request_headers = self.extract_request_headers(*args, **kwargs)
+            if old_correlation_id := request_headers.get(CORRELATION_ID_NAME, None):
+                set_correlation_id(old_correlation_id)
 
-        correlation_id_header = get_correlation_id_header()
-        request_headers.update(correlation_id_header)
-        new_args, new_kwargs = self.update_args_and_kwargs_with_request_headers(
-            request_headers, *args, **kwargs
-        )
+            correlation_id_header = get_correlation_id_header()
+            request_headers.update(correlation_id_header)
+            args, kwargs = self.update_args_and_kwargs_with_request_headers(
+                request_headers, *args, **kwargs
+            )
+        except Exception as e:
+            correlation_id_header = {}
+            logger.warn(
+                "Failed to extract request headers for function: %s, received error: %s",
+                wrapped.__name__,
+                str(e),
+            )
 
-        response = await wrapped(*new_args, **new_kwargs)
-        response_headers = self.extract_response_headers(response)
-        if CORRELATION_ID_NAME not in response_headers:
-            response_headers.update(correlation_id_header)
+        response = await wrapped(*args, **kwargs)
 
-        new_response = self.update_response_with_response_headers(
-            response_headers, response
-        )
-        return new_response
+        try:
+            response_headers = self.extract_response_headers(response)
+            if CORRELATION_ID_NAME not in response_headers:
+                response_headers.update(correlation_id_header)
+
+            response = self.update_response_with_response_headers(
+                response_headers, response
+            )
+        except Exception as e:
+            logger.warn(
+                "Failed to extract response headers for function: %s, received error: %s",
+                wrapped.__name__,
+                str(e),
+            )
+
+        return response

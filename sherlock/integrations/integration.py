@@ -7,6 +7,7 @@ import wrapt
 from sherlock import set_correlation_id
 from sherlock.constants import CORRELATION_ID_NAME, IntegrationTypes
 from sherlock.instrumentation import get_correlation_id_header
+from sherlock.utils import logger
 
 
 class AbstractIntegration(ABC):
@@ -66,33 +67,52 @@ class AbstractIntegration(ABC):
         )
 
     def _patched_func(self, wrapped, instance, args, kwargs) -> Any:
-        # First convert all args to kwargs
-        potential_kwargs_from_args = self._convert_args_to_kwargs(args, kwargs, wrapped)
-        kwargs.update(potential_kwargs_from_args)
-        args = ()
-        request_headers = self.extract_request_headers(*args, **kwargs)
-        if old_correlation_id := request_headers.get(CORRELATION_ID_NAME, None):
-            set_correlation_id(old_correlation_id)
-        elif old_correlation_id := request_headers.get(
-            CORRELATION_ID_NAME.lower(), None
-        ):
-            set_correlation_id(old_correlation_id)
+        try:
+            # First convert all args to kwargs
+            potential_kwargs_from_args = self._convert_args_to_kwargs(
+                args, kwargs, wrapped
+            )
+            kwargs.update(potential_kwargs_from_args)
+            args = ()
+            request_headers = self.extract_request_headers(*args, **kwargs)
+            if old_correlation_id := request_headers.get(CORRELATION_ID_NAME, None):
+                set_correlation_id(old_correlation_id)
+            elif old_correlation_id := request_headers.get(
+                CORRELATION_ID_NAME.lower(), None
+            ):
+                set_correlation_id(old_correlation_id)
 
-        correlation_id_header = get_correlation_id_header()
-        request_headers.update(correlation_id_header)
-        new_args, new_kwargs = self.update_args_and_kwargs_with_request_headers(
-            request_headers, *args, **kwargs
-        )
+            correlation_id_header = get_correlation_id_header()
+            request_headers.update(correlation_id_header)
+            args, kwargs = self.update_args_and_kwargs_with_request_headers(
+                request_headers, *args, **kwargs
+            )
+        except Exception as e:
+            correlation_id_header = {}
+            logger.warn(
+                "Failed to extract request headers for function: %s, received error: %s",
+                wrapped.__name__,
+                str(e),
+            )
 
-        response = wrapped(*new_args, **new_kwargs)
-        response_headers = self.extract_response_headers(response)
-        if CORRELATION_ID_NAME not in response_headers:
-            response_headers.update(correlation_id_header)
+        response = wrapped(*args, **kwargs)
 
-        new_response = self.update_response_with_response_headers(
-            response_headers, response
-        )
-        return new_response
+        try:
+            response_headers = self.extract_response_headers(response)
+            if CORRELATION_ID_NAME not in response_headers:
+                response_headers.update(correlation_id_header)
+
+            response = self.update_response_with_response_headers(
+                response_headers, response
+            )
+        except Exception as e:
+            logger.warn(
+                "Failed to extract response headers for function: %s, received error: %s",
+                wrapped.__name__,
+                str(e),
+            )
+
+        return response
 
     @staticmethod
     def _convert_args_to_kwargs(args, kwargs, func):
